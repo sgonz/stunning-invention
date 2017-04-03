@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace GraphingForm
+namespace GraphForm
 {
     static class Program
     {
