@@ -8,6 +8,7 @@ namespace Filters
 	public interface IFilterParameter
 	{
 		string Name { get; }
+		double Value { set; get; }
 	}
 
 

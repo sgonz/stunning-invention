@@ -10,13 +10,22 @@ namespace GraphForm
 {
 	public partial class GraphingForm : Form
 	{
+		private readonly int X_OFFSET = 10;
+		private readonly int Y_OFFSET = 20;
+		private readonly int Y_LBL_SHIFT = 20;
+		private readonly int Y_SLIDER_SHIFT = 50;
+		private readonly int X_BUFFER = 5;
+		private readonly int LABEL_WIDTH = 30;
+		private readonly int SLIDER_WIDTH = 100;
+
 		private System.Timers.Timer tickTimer;
 
 		private StaticFilter filter;
-		private NumericFilterParam a;
-
-		private ScalingDynamicFilter df;
 		private DynamicFilter mainFilter;
+//		private NumericFilterParam a;
+//		private ScalingDynamicFilter df;
+
+		private TrackBar aBar;
 
 		public GraphingForm()
 		{
@@ -26,16 +35,16 @@ namespace GraphForm
 			tickTimer.Interval = 1000;
 			tickTimer.Elapsed += OnTimedEvent;
 			tickTimer.AutoReset = true;
-			tickTimer.Enabled = true;
+			tickTimer.Enabled = false;
 
+			aBar = null;
 
 			mainFilter = new SinFilter();
 //			filter = new ScalingFilter();
 //			df = new ScalingDynamicFilter();
 			filter = new StaticWrapperFilter(mainFilter);
-//			a = .m;
 
-			ReloadPoints();
+			UpdateForm();
 		}
 
 
@@ -48,17 +57,23 @@ namespace GraphForm
 		private void OnTimedEvent(Object obj, System.Timers.ElapsedEventArgs e)
 		{
 //			a.Value += 1;
+Console.WriteLine("Bar Val:" + aBar.Value);
+			aBar.Value += 100;
 			ReloadPoints();
-			gPanel.Invalidate();
-			Pnl_Paint(null, null);
+//			gPanel.Invalidate();
+//			Pnl_Paint(null, null);
 		}
 
 		public void ReloadPoints()
 		{
 			gPanel.ClearDataPoints();
 			AddPoints(filter);
+
+			gPanel.Invalidate();
+			Pnl_Paint(null, null);
+
 //			SetupParameters(filter.Filter);
-			SetupParameters(mainFilter);
+//			SetupParameters(mainFilter);
 //			SetupParameters(null);
 		}
 
@@ -88,72 +103,125 @@ namespace GraphForm
 
 		public void SetupParameters(IFilter filterControl)
 		{
-			Console.WriteLine("Listing Properties:");
+			int yOffset = Y_OFFSET;
+
+			AddGrpParameters(filterControl, ref yOffset);
+
+			// Account for switching from label shifts to slider shifts
+			yOffset += Y_SLIDER_SHIFT - Y_LBL_SHIFT;
+
 			foreach (FieldInfo field in filterControl.GetType().GetFields())
 			{
-				Console.WriteLine(field.ToString());
+				AddFilterParameter((IFilterParameter)field.GetValue(filterControl), ref yOffset);
 			}
 
 
 		}
 
 
-
-
-
-/*
-		public void AddPoints()
+		private void AddGrpParameters(IFilter filterControl, ref int yOffset)
 		{
-			if (filter.GetType().IsSubclassOf(typeof(StaticFilter)))
-			{
-				AddPointsStatically((StaticFilter)filter);
-			}
-			else if (filter.GetType().IsSubclassOf(typeof(DynamicFilter)))
-			{
-				AddPointsDynamically((DynamicFilter)filter);
-			}
+			Label LblName = new Label();
+			Label LblFormula = new Label();
+			LblName.Name = "FilterName";
+			LblName.Text = filterControl.Name;
+			LblFormula.Name = "FilterFormula";
+			LblFormula.Text = filterControl.ToString();
 
+			LblName.Location = new System.Drawing.Point(X_OFFSET, yOffset);
+			LblName.Width = GrpParameters.Width - 2*X_OFFSET;
+			yOffset += Y_LBL_SHIFT;
+			LblFormula.Location = new System.Drawing.Point(X_OFFSET + X_BUFFER, yOffset);
+			LblFormula.Width = GrpParameters.Width - X_BUFFER - 2*X_OFFSET;
+			yOffset += Y_LBL_SHIFT;
+
+			GrpParameters.Tag = filterControl;
+
+			GrpParameters.Controls.Add(LblName);
+			GrpParameters.Controls.Add(LblFormula);
 		}
 
-
-		public void AddPointsDynamically(DynamicFilter f)
+		private void AddFilterParameter(IFilterParameter p, ref int yOffset)
 		{
-			System.Console.WriteLine("Drawing Dynamic Filter");
-			double step = 0.2;
-
-			for (double x = gPanel.GetMinRange(); x < gPanel.GetMaxRange(); x += step)
+			if (p.GetType() == typeof(NumericFilterParam))
 			{
-				double y = f.ProcessFilter(x);
-//System.Console.WriteLine("Adding: " + x + ", " + y);
-				gPanel.AddDataPoint(new Point2D(x, y));
-//				gPanel.AddDataPoint(new Point2D(x, f.ProcessFilter(x)));
+				AddSliderBar((NumericFilterParam)p, ref yOffset);
 			}
 		}
 
-		public void AddPointsStatically(StaticFilter f)
+
+		private void AddSliderBar(NumericFilterParam p, ref int yOffset)
 		{
-			System.Console.WriteLine("Drawing Static Filter");
-			double step = 0.2;
-			double[] xPoints = new double[(int)(((gPanel.GetMaxRange() - gPanel.GetMinRange()) / step) + 1)];
-			double[] yPoints;
+			Label l = new Label();
+//			SliderBar slider = new SilderBar();
+			DecimalTrackBar slider = new DecimalTrackBar();
 
-			// Generate the input array
-			for (int i = 0; i < xPoints.Length; i++)
+
+			l.Location = new System.Drawing.Point(X_OFFSET, yOffset);
+			l.Width = LABEL_WIDTH;
+			slider.Location = new System.Drawing.Point(X_OFFSET + LABEL_WIDTH + X_BUFFER, yOffset);
+			slider.Width = SLIDER_WIDTH;
+
+
+			// Need to find a floating point slider
+			slider.Value		= p.Value;
+			slider.Minimum		= p.Min;
+			slider.Maximum		= p.Max;
+			slider.Increment	= p.Increment;
+
+			l.Text = p.Name;
+			slider.Tag = p;
+			slider.ValueChanged += new System.EventHandler(Parameter_ValueChanged);
+
+			GrpParameters.Controls.Add(l);
+			GrpParameters.Controls.Add(slider);
+
+if (aBar == null)
+aBar = slider;
+			yOffset += Y_SLIDER_SHIFT;
+		}
+
+
+		private void Parameter_ValueChanged(object sender, EventArgs e)
+		{
+			Control c = (Control)sender;
+			IFilterParameter fp;
+
+
+			// Sanity check
+//			if (c.Tag.GetType().IsSubclassOf(typeof(IFilterParameter)))
+			if (c.Tag.GetType() == typeof(NumericFilterParam))
 			{
-				xPoints[i] = i*step + gPanel.GetMinRange();
+				fp = (IFilterParameter)c.Tag;
+				fp.Value = ((DecimalTrackBar)c).Value;
+//				Console.WriteLine("TrackBar: " + ((DecimalTrackBar)c).Value);
+//				Console.WriteLine("New value: " + fp.Value);
+				
+				ReloadPoints();
 			}
 
-			// Generate the output array
-			yPoints = f.ProcessFilter(xPoints);
+			UpdateGrpParameters();
+		}
 
-			// Add all of the calculated points
-			for (int i = 0; i < xPoints.Length; i++)
+
+		private void UpdateGrpParameters()
+		{
+			// Find the filter formula and update its values
+			foreach (Control c in GrpParameters.Controls)
 			{
-//System.Console.WriteLine("Adding: " + xPoints[i] + ", " + yPoints[i]);
-				gPanel.AddDataPoint(new Point2D(xPoints[i], yPoints[i]));
+				if (c.Name == "FilterFormula")
+				{
+					c.Text = ((IFilter)GrpParameters.Tag).ToString();
+				}
 			}
 		}
-*/
+
+
+		private void UpdateForm()
+		{
+			ReloadPoints();
+			SetupParameters(mainFilter);
+		}
 	}
 }
 

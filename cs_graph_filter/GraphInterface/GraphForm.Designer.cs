@@ -57,7 +57,7 @@ namespace GraphForm
 			this.GrpParameters.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right);
 			this.GrpParameters.Location = new System.Drawing.Point(480, 5);
 			this.GrpParameters.Name = "GrpGraph";
-			this.GrpParameters.Size = new System.Drawing.Size(150, 470);
+			this.GrpParameters.Size = new System.Drawing.Size(310, 470);
 			this.GrpParameters.TabIndex = 2;
 			this.GrpParameters.TabStop = false;
 			this.GrpParameters.Text = "Parameters";
@@ -65,7 +65,7 @@ namespace GraphForm
 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(640, 480);
+            this.ClientSize = new System.Drawing.Size(800, 480);
             this.MinimumSize = new System.Drawing.Size(320, 200);
 //            this.Controls.Add(this.gPanel);
             this.Controls.Add(this.GrpGraph);

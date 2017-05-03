@@ -199,6 +199,7 @@ namespace Filters
 	// y = a*sin(h*(x-b)) + k
 	public class SinFilter : DynamicFilter
 	{
+		private readonly string NUM_FORMAT = "0.###";
 		public NumericFilterParam a;
 		public NumericFilterParam k;
 		public NumericFilterParam h;
@@ -215,13 +216,32 @@ namespace Filters
 			k.Value = 0.0;
 			h.Value = 1.0;
 			b.Value = 0.0;
+
+ 			a.min = -10.0;
+ 			a.max = 10.0;
+ 			a.inc = 0.01;
+ 
+ 			k.min = -10.0;
+ 			k.max = 10.0;
+ 			k.inc = 1.0;
+ 
+ 			h.min = -4.0;
+ 			h.max = 4.0;
+ 			h.inc = 0.50;
+ 
+ 			b.min = -10.0;
+ 			b.max = 10.0;
+ 			b.inc = 1.0;
 		}
 
 		public override string Name { get { return "Sine Wave Filter"; } }
 
 		public override string ToString()
 		{
-			return "y = " + a.Value.ToString() + "*sin(" + h.Value.ToString() + "*(x-" + b.Value.ToString() + ") + " + k.ToString();
+			return "y = " + a.Value.ToString(NUM_FORMAT) +
+						"*sin(" + h.Value.ToString(NUM_FORMAT) +
+						"*(x-" + b.Value.ToString(NUM_FORMAT) + ")) + " +
+						k.Value.ToString(NUM_FORMAT);
 		}
 
 		public override double ProcessFilter(double dataIn)
